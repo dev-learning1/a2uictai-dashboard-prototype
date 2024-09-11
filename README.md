@@ -4,3 +4,10 @@ npm i @types/leaflet react-leaflet leaflet leaflet-defaulticon-compatibility lea
 npm i prisma
 npx prisma init 
 ```
+
+# start
+```bash
+npm run dev
+// DB
+npx prisma studio
+```
