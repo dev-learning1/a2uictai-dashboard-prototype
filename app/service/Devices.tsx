@@ -113,11 +113,11 @@ export const radarWifiData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifi
         if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF')) return;
     
         const [router_id, device_id] = data.topic_id.split('/');
-        if (device_id.includes('room3') || device_id.includes('Test')) {
+        // if (device_id.includes('room3')){// || device_id.includes('Test')) {
             // RadarWifiData인 경우 device_id가 'room'을 포함하면 push
             groupedData.push({ ...data, router_id, device_id });
-          }
+          // }
       });
 
-      return groupedData;
+    return groupedData;
 }
