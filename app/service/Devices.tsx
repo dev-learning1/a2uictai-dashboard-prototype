@@ -28,6 +28,11 @@ export interface GroupedRadarWifiData extends RadarWifiData {
     device_id: string;
 }
 
+export interface GroupedTubeTrailerData extends TubeTrailerData {
+    router_id: string;
+    device_id: string;
+}
+
 export const deviceData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[]):GroupedDeviceData[] => {
     const groupedData:GroupedDeviceData[] = [];
     
@@ -120,4 +125,46 @@ export const radarWifiData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifi
       });
 
     return groupedData;
+}
+
+export const tubeTrailerData = (mqttDataDb: (ElicitData | RadarUsbData | RadarWifiData | TubeTrailerData)[]):GroupedTubeTrailerData[] => {
+  const groupedData:GroupedTubeTrailerData[] = [];
+  
+  mqttDataDb.filter((data): data is TubeTrailerData => 'sensor_node5' in data.data)
+  .forEach(data => {
+      if (data.topic_id.includes('ALIVE') || data.topic_id.includes('JOINCNF')) return;
+  
+      const [router_id, device_id] = data.topic_id.split('/');
+      groupedData.push({ ...data, router_id, device_id });
+  });
+
+  const topicMap: Record<string, [string,string]> = {};
+  groupedData.forEach(item => {
+      const data = item.data;
+      const topicParts = item.topic_id.split("/"); 
+      const key = topicParts[0];  
+      const newValue = topicParts[1]; 
+
+      // 기존 키가 이미 존재할 경우, timetbl 값을 비교하여 최신 데이터 반영
+      if (topicMap[key]) {
+          const existingTime = topicMap[key][1] ? new Date(topicMap[key][1]).getTime() : 0;
+          const newTime = data?.timetbl ? new Date(data.timetbl).getTime() : 0;
+
+          // 기존 값의 timetbl 값이 더 이전 것이면 새로운 데이터로 갱신
+          if (newTime > existingTime) {
+              topicMap[key] = [newValue, data.timetbl];
+          }
+      } else {
+          // 키가 없으면 바로 추가
+          topicMap[key] = [newValue, data.timetbl];
+      }
+  });
+
+  // cuid가 동일한 데이터 중 timetbl가 가장 최신의 것만 나오도록 필터
+  const filteredGroupedData = groupedData.filter(item => {
+    const topicParts = item.topic_id.split("/");
+    return topicMap[topicParts[0]] && topicMap[topicParts[0]][0] === topicParts[1];
+  })
+
+  return filteredGroupedData;
 }
